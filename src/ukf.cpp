@@ -52,6 +52,12 @@ UKF::UKF() {
 
   Hint: one or more values initialized above might be wildly off...
   */
+
+  is_x_initialized_ = false; 
+
+  n_x_ = 5; // CVTR model has five states: px, py, v, yaw, yawd
+
+  n_aug_ = n_x_ + 2; 
 }
 
 UKF::~UKF() {}
@@ -67,6 +73,41 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   Complete this function! Make sure you switch between lidar and radar
   measurements.
   */
+
+  if (!is_x_initialized_)
+  {
+    /**
+      * Initialize the state x_ with the first measurement.
+      * Create the covariance matrix.
+      * Remember: you'll need to convert radar from polar to cartesian coordinates.
+    */
+    // first measurement
+    double init_x = 0.0;
+    double init_y = 0.0;
+
+    if (meas_package.sensor_type_ == MeasurementPackage::RADAR) 
+    {
+      /**
+      Convert radar from polar to cartesian coordinates and initialize state.
+      */
+      double rho = meas_package.raw_measurements_[0];
+      double phi = meas_package.raw_measurements_[1];
+
+      init_x = rho*std::cos(phi);
+      init_y = rho*std::sin(phi);
+    }
+    else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+      /**
+      Initialize state.
+      */
+      init_x = meas_package.raw_measurements_[0];
+      init_y = meas_package.raw_measurements_[1];
+    }
+
+    x_ << init_x, init_y, 0 , 0, 0;
+
+    return; 
+  }
 }
 
 /**
