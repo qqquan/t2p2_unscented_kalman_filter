@@ -135,6 +135,10 @@ void UKF::Prediction(double delta_t) {
   Complete this function! Estimate the object's location. Modify the state
   vector, x_. Predict sigma points, the state, and the state covariance matrix.
   */
+  MatrixXd Xsig_aug = MatrixXd(n_aug_, 2*n_aug_ + 1);
+  GenerateAugmentedSigmaPoints(&Xsig_aug);
+
+  PredictAugmentedSigmaPoints(Xsig_aug, delta_t, &Xsig_pred_);
 }
 
 /**
@@ -170,46 +174,8 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
 
 
-void UKF::ChooseSigmaPoints(MatrixXd* Xsig_out) {
 
-
-  //create sigma point matrix
-  MatrixXd Xsig = MatrixXd(n_x_, 2*n_x_ + 1);
-
-  //calculate square root of P
-  MatrixXd A = P_.llt().matrixL();
-
-
-  //calculate sigma points
-
-
-  MatrixXd tras_P  = sqrt(lambda_ + n_x_)*A;
-  
-  
-  //set sigma points as columns of matrix Xsig
-  Xsig.col(0) = x_;
-
-  for(int i=0; i<n_x_; i++)
-  {
-    Xsig.col(1+i) = x_+ tras_P.col(i);
-    Xsig.col(1+i+n_x_) = x_- tras_P.col(i);
-
-  }
-
-  //print result
-  //std::cout << "Xsig = " << std::endl << Xsig << std::endl;
-
-  //write result
-  *Xsig_out = Xsig;
-
-
-
-}
-
-
-
-
-void UKF::AugmentSigmaPoints(MatrixXd* Xsig_out) {
+void UKF::GenerateAugmentedSigmaPoints(MatrixXd* Xsig_out) {
 
  
   //create augmented mean vector
@@ -217,9 +183,6 @@ void UKF::AugmentSigmaPoints(MatrixXd* Xsig_out) {
 
   //create augmented state covariance
   MatrixXd P_aug = MatrixXd(n_aug_, n_aug_);
-
-  //create sigma point matrix
-  MatrixXd Xsig_aug = MatrixXd(n_aug_, 2*n_aug_ + 1);
 
   //create augmented mean state
   x_aug << x_, 0, 0;
@@ -236,17 +199,17 @@ void UKF::AugmentSigmaPoints(MatrixXd* Xsig_out) {
   MatrixXd P_delta = std::sqrt(lambda_+n_aug_)*P_aug_sqrt;    
   //create augmented sigma points
   
-  Xsig_aug.col(0) = x_aug;
+  Xsig_out->col(0) = x_aug;
   
   for(int i=0; i<n_aug_; i++)
   {
-    Xsig_aug.col(1+i) =   x_aug + P_delta.col(i);
-    Xsig_aug.col(1+i+n_aug_) = x_aug - P_delta.col(i);
+    Xsig_out->col(1+i) =   x_aug + P_delta.col(i);
+    Xsig_out->col(1+i+n_aug_) = x_aug - P_delta.col(i);
     
   }
 
-  //write result
-  *Xsig_out = Xsig_aug;
+  // //write result
+  // *Xsig_out = Xsig_aug;
 
 
 }

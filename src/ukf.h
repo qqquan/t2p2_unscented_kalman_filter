@@ -115,17 +115,10 @@ public:
 
 
   /**
-   * generate sigma points 
-   * @param Xsig_out the generated sigma point output
-   */
-  void ChooseSigmaPoints(MatrixXd* Xsig_out) ;
-
-
-  /**
    * augment sigma points with noise 
    * @param Xsig_out the augmented sigma point output
    */
-  void AugmentSigmaPoints(MatrixXd* Xsig_out) ;
+  void GenerateAugmentedSigmaPoints(MatrixXd* Xsig_out) ;
 
 
   /**
