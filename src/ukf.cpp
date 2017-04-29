@@ -55,9 +55,21 @@ UKF::UKF() {
 
   is_x_initialized_ = false; 
 
-  n_x_ = 5; // CVTR model has five states: px, py, v, yaw, yawd
+  // n_x_ = 5; // CVTR model has five states: px, py, v, yaw, yawd
+  // n_aug_delta_ = 2; //acceleration noise has two dimensions
+  // n_aug_ = n_x_ + n_aug_delta_; 
+   
 
-  n_aug_ = n_x_ + 2; 
+  P_.resize(n_x_, n_x_); //we are only certain about px and py at beginning. a large value, e.g. 1000, means high uncertainty.
+  P_ << 1, 0, 0, 0, 0,
+        0, 1, 0, 0, 0,
+        0, 0, 1000, 0, 0,
+        0, 0, 0, 1000, 0,
+        0, 0, 0, 0, 1000;
+
+
+
+     
 }
 
 UKF::~UKF() {}
@@ -152,4 +164,88 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the radar NIS.
   */
+}
+
+
+
+
+void UKF::GenerateSigmaPoints(MatrixXd* Xsig_out) {
+
+
+  //create sigma point matrix
+  MatrixXd Xsig = MatrixXd(n_x_, 2*n_x_ + 1);
+
+  //calculate square root of P
+  MatrixXd A = P_.llt().matrixL();
+
+
+  //calculate sigma points
+
+
+  MatrixXd tras_P  = sqrt(lambda_ + n_x_)*A;
+  
+  
+  //set sigma points as columns of matrix Xsig
+  Xsig.col(0) = x_;
+
+  for(int i=0; i<n_x_; i++)
+  {
+    Xsig.col(1+i) = x_+ tras_P.col(i);
+    Xsig.col(1+i+n_x_) = x_- tras_P.col(i);
+
+  }
+
+  //print result
+  //std::cout << "Xsig = " << std::endl << Xsig << std::endl;
+
+  //write result
+  *Xsig_out = Xsig;
+
+
+
+}
+
+
+
+
+void UKF::AugmentedSigmaPoints(MatrixXd* Xsig_out) {
+
+ 
+  //create augmented mean vector
+  VectorXd x_aug = VectorXd(n_aug_);
+
+  //create augmented state covariance
+  MatrixXd P_aug = MatrixXd(n_aug_, n_aug_);
+
+  //create sigma point matrix
+  MatrixXd Xsig_aug = MatrixXd(n_aug_, 2*n_aug_ + 1);
+
+  //create augmented mean state
+  x_aug << x_, 0, 0;
+  //create augmented covariance matrix
+  MatrixXd Q(n_aug_delta_,n_aug_delta_);
+  Q << std_a_*std_a_, 0,
+       0,             std_yawdd_*std_yawdd_;
+       
+  P_aug.block<n_x_,n_x_>(0,0) = P_;    
+  P_aug.block<n_aug_delta_,n_aug_delta_>(n_x_,n_x_) = Q;    
+    
+  //create square root matrix
+  MatrixXd P_aug_sqrt = P_aug.llt().matrixL();
+  MatrixXd P_delta = std::sqrt(lambda_+n_aug_)*P_aug_sqrt;    
+  //create augmented sigma points
+  
+  Xsig_aug.col(0) = x_aug;
+  
+  for(int i=0; i<n_aug_; i++)
+  {
+    Xsig_aug.col(1+i) =   x_aug + P_delta.col(i);
+    Xsig_aug.col(1+i+n_aug_) = x_aug - P_delta.col(i);
+    
+  }
+
+  //write result
+  *Xsig_out = Xsig_aug;
+
+
 }

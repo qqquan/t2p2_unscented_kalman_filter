@@ -60,13 +60,15 @@ public:
   VectorXd weights_;
 
   ///* State dimension
-  int n_x_;
+  static constexpr int n_x_ = 5;
 
+  ///* number of new states
+  static constexpr int n_aug_delta_ = 2 ;
   ///* Augmented state dimension
-  int n_aug_;
+  static constexpr int n_aug_ = n_x_ + n_aug_delta_;
 
   ///* Sigma point spreading parameter
-  double lambda_;
+  static constexpr double lambda_= 3 - n_x_;
 
   ///* the current NIS for radar
   double NIS_radar_;
@@ -74,6 +76,8 @@ public:
   ///* the current NIS for laser
   double NIS_laser_;
 
+  ///* acceleration noise for prediction model
+  const MatrixXd Q_;
   /**
    * Constructor
    */
@@ -108,6 +112,23 @@ public:
    * @param meas_package The measurement at k+1
    */
   void UpdateRadar(MeasurementPackage meas_package);
+
+
+  /**
+   * generate sigma points 
+   * @param Xsig_out the generated sigma point output
+   */
+  void GenerateSigmaPoints(MatrixXd* Xsig_out) ;
+
+
+  /**
+   * augment sigma points with noise 
+   * @param Xsig_out the augmented sigma point output
+   */
+  void AugmentedSigmaPoints(MatrixXd* Xsig_out) ;
+
+
+
 };
 
 #endif /* UKF_H */
