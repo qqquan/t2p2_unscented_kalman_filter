@@ -33,7 +33,7 @@ public:
   MatrixXd Xsig_pred_;
 
   ///* time when the state is true, in us
-  long long time_us_;
+  long long previous_timestamp_us_;
 
   ///* Process noise standard deviation longitudinal acceleration in m/s^2
   double std_a_;
@@ -118,16 +118,23 @@ public:
    * generate sigma points 
    * @param Xsig_out the generated sigma point output
    */
-  void GenerateSigmaPoints(MatrixXd* Xsig_out) ;
+  void ChooseSigmaPoints(MatrixXd* Xsig_out) ;
 
 
   /**
    * augment sigma points with noise 
    * @param Xsig_out the augmented sigma point output
    */
-  void AugmentedSigmaPoints(MatrixXd* Xsig_out) ;
+  void AugmentSigmaPoints(MatrixXd* Xsig_out) ;
 
 
+  /**
+   * Predict states based on the augmented sigma points  
+   * @param Xsig_aug the augmented sigma point output
+   * @param Xsig_aug the elapsed time in seconds since the last measurement 
+   * @param Xsig_out the predicted system states 
+   */
+  void PredictAugmentedSigmaPoints(const MatrixXd& Xsig_aug, double delta_t,  MatrixXd* Xsig_out); 
 
 };
 

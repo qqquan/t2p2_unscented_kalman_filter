@@ -117,7 +117,8 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     }
 
     x_ << init_x, init_y, 0 , 0, 0;
-
+    previous_timestamp_us_ = meas_package.timestamp_;
+    
     return; 
   }
 }
@@ -169,7 +170,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
 
 
-void UKF::GenerateSigmaPoints(MatrixXd* Xsig_out) {
+void UKF::ChooseSigmaPoints(MatrixXd* Xsig_out) {
 
 
   //create sigma point matrix
@@ -208,7 +209,7 @@ void UKF::GenerateSigmaPoints(MatrixXd* Xsig_out) {
 
 
 
-void UKF::AugmentedSigmaPoints(MatrixXd* Xsig_out) {
+void UKF::AugmentSigmaPoints(MatrixXd* Xsig_out) {
 
  
   //create augmented mean vector
@@ -247,5 +248,61 @@ void UKF::AugmentedSigmaPoints(MatrixXd* Xsig_out) {
   //write result
   *Xsig_out = Xsig_aug;
 
+
+}
+
+
+void UKF::PredictAugmentedSigmaPoints(const MatrixXd& Xsig_aug, double delta_t, MatrixXd* Xsig_out) 
+{
+
+  //create a temporary matrix with predicted sigma points as columns
+  MatrixXd Xsig_pred = MatrixXd(n_x_, 2 * n_aug_ + 1);
+
+
+  //predict sigma points
+  //avoid division by zero
+  //write predicted sigma points into right column
+  for(int i = 0; i < (2*n_aug_ + 1); i++ )
+  {
+      double px       = Xsig_aug.col(i)[0];
+      double py       = Xsig_aug.col(i)[1];
+      double v        = Xsig_aug.col(i)[2];
+      double yaw      = Xsig_aug.col(i)[3];
+      double yaw_rate = Xsig_aug.col(i)[4];
+      double niu_a    = Xsig_aug.col(i)[5];
+      double niu_yaw  = Xsig_aug.col(i)[6];    
+
+      double px_new       = 0.0;
+      double py_new       = 0.0;
+      double v_new        = 0.0;
+      double yaw_new      = 0.0;
+      double yaw_rate_new = 0.0;
+      double niu_a_new    = 0.0;
+      double niu_yaw_new  = 0.0;  
+      
+      if (yaw_rate != 0)
+      {
+         px_new       = px + v/yaw_rate*( sin(yaw + yaw_rate*delta_t) - sin(yaw)) + 0.5 *delta_t*delta_t*cos(yaw)*niu_a;
+         py_new       = py + v/yaw_rate*(-cos(yaw + yaw_rate*delta_t) + cos(yaw)) + 0.5 *delta_t*delta_t*sin(yaw)*niu_a;
+         v_new        = v + delta_t*niu_a;
+         yaw_new      = yaw + yaw_rate*delta_t + 0.5*delta_t*delta_t*niu_yaw;
+         yaw_rate_new = yaw_rate + delta_t*niu_yaw;
+         
+      }
+      else
+      {
+         px_new       = px + v*cos(yaw)*delta_t + 0.5*delta_t*delta_t*cos(yaw)*niu_a; 
+         py_new       = px + v*sin(yaw)*delta_t + 0.5*delta_t*delta_t*sin(yaw)*niu_a; 
+         v_new        = v + delta_t*niu_a;
+         yaw_new      = yaw + yaw_rate*delta_t + 0.5*delta_t*delta_t*niu_yaw;
+         yaw_rate_new = yaw_rate + delta_t*niu_yaw;
+      }
+      
+      Xsig_pred.col(i)<<px_new, py_new, v_new, yaw_new, yaw_rate_new;
+      
+  }
+
+  //write result
+  *Xsig_out = Xsig_pred; //copy assignment. TODO: Make a move assignment
 
 }
