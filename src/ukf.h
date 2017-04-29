@@ -122,12 +122,22 @@ public:
 
 
   /**
-   * Predict states based on the augmented sigma points  
-   * @param Xsig_aug the augmented sigma point output
-   * @param Xsig_aug the elapsed time in seconds since the last measurement 
-   * @param Xsig_out the predicted system states 
+   * Predict states based on the augmented sigma points 
+   * @param Xsig_aug the augmented sigma point 
+   * @param delta_t  the elapsed time in seconds since the last measurement 
+   * @param Xsig_out the predicted sigma states 
    */
   void PredictAugmentedSigmaPoints(const MatrixXd& Xsig_aug, double delta_t,  MatrixXd* Xsig_out); 
+
+
+  /**
+   * Calculate state means and state certainty covariance based on the predicted augmented sigma points   
+   * @param x_sig_pred  the predicted sigma points
+   * @param x_out       the system state means
+   * @param P_out       the prediction uncertainty covariance
+
+   */
+  void CalculatePredictionMeanAndCovariance(const MatrixXd& x_sig_pred, VectorXd* x_out, MatrixXd* P_out);
 
 };
 

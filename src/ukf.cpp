@@ -67,9 +67,9 @@ UKF::UKF() {
         0, 0, 0, 1000, 0,
         0, 0, 0, 0, 1000;
 
+  weights_ = VectorXd(2*n_aug_+1);
+  
 
-
-     
 }
 
 UKF::~UKF() {}
@@ -116,11 +116,29 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       init_y = meas_package.raw_measurements_[1];
     }
 
-    x_ << init_x, init_y, 0 , 0, 0;
-    previous_timestamp_us_ = meas_package.timestamp_;
-    
+    if( (init_x < 0.001) && (init_y < 0.001) )
+    {
+      //invalid data, discard
+      is_x_initialized_ = false;
+    }
+    else
+    {
+      x_ << init_x, init_y, 0 , 0, 0;
+      previous_timestamp_us_ = meas_package.timestamp_;
+
+      // done initializing, no need to predict or update
+      is_x_initialized_ = true;
+    }
+
     return; 
   }
+  else
+  {
+    double delta_t_sec = (meas_package.timestamp_ - previous_timestamp_us_) / 1000000.0;
+
+    Prediction(delta_t_sec);
+  }
+
 }
 
 /**
@@ -130,15 +148,16 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
  */
 void UKF::Prediction(double delta_t) {
   /**
-  TODO:
-
-  Complete this function! Estimate the object's location. Modify the state
+  Estimate the object's location. Modify the state
   vector, x_. Predict sigma points, the state, and the state covariance matrix.
   */
   MatrixXd Xsig_aug = MatrixXd(n_aug_, 2*n_aug_ + 1);
+  
   GenerateAugmentedSigmaPoints(&Xsig_aug);
 
   PredictAugmentedSigmaPoints(Xsig_aug, delta_t, &Xsig_pred_);
+
+  CalculatePredictionMeanAndCovariance(Xsig_pred_, &x_, &P_);
 }
 
 /**
@@ -267,5 +286,50 @@ void UKF::PredictAugmentedSigmaPoints(const MatrixXd& Xsig_aug, double delta_t, 
 
   //write result
   *Xsig_out = Xsig_pred; //copy assignment. TODO: Make a move assignment
+
+}
+
+void UKF::CalculatePredictionMeanAndCovariance(const MatrixXd& x_sig_pred, VectorXd* x_out, MatrixXd* P_out)
+{
+
+  //create vector for predicted state
+  VectorXd x = VectorXd(n_x_);
+
+  //create covariance matrix for prediction
+  MatrixXd P = MatrixXd(n_x_, n_x_);
+
+  // set weights
+  double weight_0 = lambda_/(lambda_+n_aug_);
+  weights_(0) = weight_0;
+  for (int i=1; i<2*n_aug_+1; i++) {  //2n+1 weights
+    double weight = 0.5/(n_aug_+lambda_);
+    weights_(i) = weight;
+  }
+
+  //predicted state mean
+  x.fill(0.0);
+  for (int i = 0; i < 2 * n_aug_ + 1; i++) {  //iterate over sigma points
+    x = x+ weights_(i) * x_sig_pred.col(i);
+  }
+
+  //predicted state covariance matrix
+  P.fill(0.0);
+  for (int i = 0; i < 2 * n_aug_ + 1; i++) {  //iterate over sigma points
+
+    // state difference
+    VectorXd x_diff = x_sig_pred.col(i) - x;
+    //angle normalization
+    while (x_diff(3)> M_PI) x_diff(3)-=2.*M_PI;
+    while (x_diff(3)<-M_PI) x_diff(3)+=2.*M_PI;
+
+    P = P + weights_(i) * x_diff * x_diff.transpose() ; //Qnote: each x_diff * x_diff.transpose() is a covariance matrix P of that sigma point. average over all 
+  }
+
+
+
+
+  //write result
+  *x_out = x;
+  *P_out = P;
 
 }
