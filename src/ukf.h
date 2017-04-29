@@ -29,6 +29,9 @@ public:
   ///* state covariance matrix
   MatrixXd P_;
 
+  ///* acceleration noise covariance for prediction model
+  MatrixXd Q_;
+
   ///* predicted sigma points matrix
   MatrixXd Xsig_pred_;
 
@@ -59,13 +62,16 @@ public:
   ///* Weights of sigma points
   VectorXd weights_;
 
-  ///* State dimension
+  ///* State dimension. CVTR model has five states: px, py, v, yaw, yawd
   static constexpr int n_x_ = 5;
 
-  ///* number of new states
+  ///* number of new states. acceleration noise has two dimensions
   static constexpr int n_aug_delta_ = 2 ;
   ///* Augmented state dimension
   static constexpr int n_aug_ = n_x_ + n_aug_delta_;
+
+  ///* number of radar measurement types, radar can measure r, phi, and r_dot
+  static constexpr int n_z_radar_= 3;
 
   ///* Sigma point spreading parameter
   static constexpr double lambda_= 3 - n_x_;
@@ -76,8 +82,10 @@ public:
   ///* the current NIS for laser
   double NIS_laser_;
 
-  ///* acceleration noise for prediction model
-  const MatrixXd Q_;
+  ///* sensor measurement noise 
+  MatrixXd R_;
+
+
   /**
    * Constructor
    */
@@ -138,6 +146,17 @@ public:
 
    */
   void CalculatePredictionMeanAndCovariance(const MatrixXd& x_sig_pred, VectorXd* x_out, MatrixXd* P_out);
+
+
+  /**
+   * Covert the predicted system state into the RADAR coordination of 3 states: distance rho, orientation phi, radius speed rho_d. 
+   * @param x_sig_pred  the predicted sigma points
+   * @param z_out   the converted system state in the RADAR coordination 
+   * @param S_out   the system state means
+
+   */
+  void UKF::ConvertPredictedStatesIntoRadarCoordination(const MatrixXd& x_sig_pred, VectorXd* z_out, MatrixXd* S_out); 
+
 
 };
 

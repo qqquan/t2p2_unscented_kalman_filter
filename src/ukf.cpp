@@ -40,10 +40,11 @@ UKF::UKF() {
   std_radr_ = 0.3;
 
   // Radar measurement noise standard deviation angle in rad
-  std_radphi_ = 0.03;
+  std_radphi_ = 0.03; //  assignment value: 0.0175;
+
 
   // Radar measurement noise standard deviation radius change in m/s
-  std_radrd_ = 0.3;
+  std_radrd_ = 0.3; // assignment value: 0.1
 
   /**
   TODO:
@@ -55,10 +56,6 @@ UKF::UKF() {
 
   is_x_initialized_ = false; 
 
-  // n_x_ = 5; // CVTR model has five states: px, py, v, yaw, yawd
-  // n_aug_delta_ = 2; //acceleration noise has two dimensions
-  // n_aug_ = n_x_ + n_aug_delta_; 
-   
 
   P_.resize(n_x_, n_x_); //we are only certain about px and py at beginning. a large value, e.g. 1000, means high uncertainty.
   P_ << 1, 0, 0, 0, 0,
@@ -67,8 +64,18 @@ UKF::UKF() {
         0, 0, 0, 1000, 0,
         0, 0, 0, 0, 1000;
 
+  Q_.resize(n_aug_delta_,n_aug_delta_);
+  Q_ << std_a_*std_a_, 0,
+        0,             std_yawdd_*std_yawdd_;
+       
+
   weights_ = VectorXd(2*n_aug_+1);
   
+  R_.resize(n_z_radar_, n_z_radar_);
+  R_ << std_radr_*std_radr_,  0,                        0,
+        0,                    std_radphi_*std_radphi_,  0,
+        0,                    0,                        std_radrd_*std_radrd_;
+
 
 }
 
@@ -137,6 +144,19 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     double delta_t_sec = (meas_package.timestamp_ - previous_timestamp_us_) / 1000000.0;
 
     Prediction(delta_t_sec);
+
+    if (meas_package.sensor_type_ ==  MeasurementPackage::RADAR)
+    {
+      UpdateRadar(meas_package);
+    }
+    else if (meas_package.sensor_type_ == MeasurementPackage::LASER)
+    {
+      UpdateLidar(meas_package);
+    }
+    else
+    {
+      /*unknown sensor, do nothing*/
+    }
   }
 
 }
@@ -151,7 +171,7 @@ void UKF::Prediction(double delta_t) {
   Estimate the object's location. Modify the state
   vector, x_. Predict sigma points, the state, and the state covariance matrix.
   */
-  MatrixXd Xsig_aug = MatrixXd(n_aug_, 2*n_aug_ + 1);
+  MatrixXd Xsig_aug = MatrixXd(n_aug_, 2*n_aug_ + 1); //augmented sigma points
   
   GenerateAugmentedSigmaPoints(&Xsig_aug);
 
@@ -164,7 +184,8 @@ void UKF::Prediction(double delta_t) {
  * Updates the state and the state covariance matrix using a laser measurement.
  * @param {MeasurementPackage} meas_package
  */
-void UKF::UpdateLidar(MeasurementPackage meas_package) {
+void UKF::UpdateLidar(MeasurementPackage meas_package) 
+{
   /**
   TODO:
 
@@ -205,13 +226,9 @@ void UKF::GenerateAugmentedSigmaPoints(MatrixXd* Xsig_out) {
 
   //create augmented mean state
   x_aug << x_, 0, 0;
-  //create augmented covariance matrix
-  MatrixXd Q(n_aug_delta_,n_aug_delta_);
-  Q << std_a_*std_a_, 0,
-       0,             std_yawdd_*std_yawdd_;
-       
+
   P_aug.block<n_x_,n_x_>(0,0) = P_;    
-  P_aug.block<n_aug_delta_,n_aug_delta_>(n_x_,n_x_) = Q;    
+  P_aug.block<n_aug_delta_,n_aug_delta_>(n_x_,n_x_) = Q_;    
     
   //create square root matrix
   MatrixXd P_aug_sqrt = P_aug.llt().matrixL();
@@ -238,7 +255,7 @@ void UKF::PredictAugmentedSigmaPoints(const MatrixXd& Xsig_aug, double delta_t, 
 {
 
   //create a temporary matrix with predicted sigma points as columns
-  MatrixXd Xsig_pred = MatrixXd(n_x_, 2 * n_aug_ + 1);
+  MatrixXd x_sig_pred = MatrixXd(n_x_, 2 * n_aug_ + 1);
 
 
   //predict sigma points
@@ -280,12 +297,12 @@ void UKF::PredictAugmentedSigmaPoints(const MatrixXd& Xsig_aug, double delta_t, 
          yaw_rate_new = yaw_rate + delta_t*niu_yaw;
       }
       
-      Xsig_pred.col(i)<<px_new, py_new, v_new, yaw_new, yaw_rate_new;
+      x_sig_pred.col(i)<<px_new, py_new, v_new, yaw_new, yaw_rate_new;
       
   }
 
   //write result
-  *Xsig_out = Xsig_pred; //copy assignment. TODO: Make a move assignment
+  *Xsig_out = x_sig_pred; //copy assignment. TODO: Make a move assignment
 
 }
 
@@ -298,10 +315,10 @@ void UKF::CalculatePredictionMeanAndCovariance(const MatrixXd& x_sig_pred, Vecto
   //create covariance matrix for prediction
   MatrixXd P = MatrixXd(n_x_, n_x_);
 
-  // set weights
+  // set weights_
   double weight_0 = lambda_/(lambda_+n_aug_);
   weights_(0) = weight_0;
-  for (int i=1; i<2*n_aug_+1; i++) {  //2n+1 weights
+  for (int i=1; i<2*n_aug_+1; i++) {  //2n+1 weights_
     double weight = 0.5/(n_aug_+lambda_);
     weights_(i) = weight;
   }
@@ -333,3 +350,98 @@ void UKF::CalculatePredictionMeanAndCovariance(const MatrixXd& x_sig_pred, Vecto
   *P_out = P;
 
 }
+
+
+
+
+static Eigen::VectorXd ConvCartesianToPolar_CTRV(const Eigen::VectorXd& x)
+{
+  double px = x[0];
+  double py = x[1];
+  double v = x[2];
+  double yaw = x[3];
+
+  double distance = px*px + py*py;
+  VectorXd ret_val(3);
+  if(0 != distance)
+  {
+    double ro = std::sqrt(distance);
+    double phi = std::atan2(py,px);
+    double vx = v*std::cos(yaw);
+    double vy = v*std::sin(yaw);
+    
+    double ro_dot = (px*vx+py*vy)/(ro);
+    ret_val << ro, phi, ro_dot;
+  }
+  else
+  { 
+    double ro_dot = 0.0;
+    double phi = std::atan2(py,px);
+
+    //if the speed is along x-axis or y-axis
+
+    ro_dot = v;
+
+    ret_val << 0, phi, ro_dot;
+    // std::cerr << "ConvPolarToCartesian() - Error - Division by Zero" << std::endl;
+  }
+
+  return ret_val;
+}
+
+
+
+
+/**
+ * Covert the predicted system state into the RADAR coordination of 3 states: distance rho, orientation phi, radius speed rho_d. 
+ * @param x_sig_pred  the predicted sigma points
+ * @param z_out   the converted system state in the RADAR coordination 
+ * @param S_out   the system state means
+ */
+void UKF::ConvertPredictedStatesIntoRadarCoordination(const MatrixXd& x_sig_pred, VectorXd* z_out, MatrixXd* S_out) {
+
+
+  //create matrix for sigma points in measurement space
+  MatrixXd Zsig = MatrixXd(n_z_radar_, 2 * n_aug_ + 1);
+  
+  //mean predicted measurement
+  VectorXd z_pred = VectorXd(n_z_radar_);
+  
+  //measurement covariance matrix S
+  MatrixXd S = MatrixXd(n_z_radar_,n_z_radar_);
+
+  //transform sigma points into measurement space
+  for(int i=0; i<(2*n_aug_ + 1); i++)
+  {
+      //transform sigma points into measurement space
+
+      Zsig.col(i) = ConvCartesianToPolar_CTRV(x_sig_pred.col(i)) /* + noise*/;
+      
+      //calculate mean predicted measurement
+      z_pred += weights_(i)*Zsig.col(i);
+      
+
+  }
+  
+  //calculate measurement covariance matrix S
+  for(int i=0; i<(2*n_aug_ + 1); i++)
+  {
+      VectorXd z_diff = Zsig.col(i) - z_pred;
+
+    //angle normalization 
+    while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
+    while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
+
+    S += weights_(i)*z_diff*z_diff.transpose();     
+  }
+  
+
+  S += R_;
+
+  //write result
+  *z_out = z_pred;
+  *S_out = S;
+}
+
+
+
