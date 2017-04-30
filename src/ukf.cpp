@@ -71,10 +71,10 @@ UKF::UKF() {
 
   weights_ = VectorXd(2*n_aug_+1);
   
-  R_.resize(n_z_radar_, n_z_radar_);
-  R_ << std_radr_*std_radr_,  0,                        0,
-        0,                    std_radphi_*std_radphi_,  0,
-        0,                    0,                        std_radrd_*std_radrd_;
+  R_radar_.resize(n_z_radar_, n_z_radar_);
+  R_radar_ << std_radr_*std_radr_,  0,                        0,
+              0,                    std_radphi_*std_radphi_,  0,
+              0,                    0,                        std_radrd_*std_radrd_;
 
 
 }
@@ -209,6 +209,26 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the radar NIS.
   */
+  int n_z = meas_package.raw_measurements_.size();
+    //create vector for mean predicted measurement
+  VectorXd z_pred = VectorXd(n_z);
+  // z_pred = ConvCartesianToPolar_CTRV(x_);
+  MatrixXd z_sig_pred = MatrixXd(n_z, n_sigma_);
+  MatrixXd S = MatrixXd(n_z, n_z);
+
+  ConvertPredictedSigmasIntoRadarCoordination(    Xsig_pred_,   /*const MatrixXd& x_sig_pred, */
+                                                  &z_pred,      /*VectorXd* z_out, */
+                                                  &z_sig_pred,  /*VectorXd* z_sig_out, */
+                                                  &S            /*MatrixXd* S_out*/
+                                               );
+
+  UpdateState(  meas_package.raw_measurements_,  
+                z_pred,    
+                z_sig_pred,                      
+                S,                               
+                &x_,                             
+                &P_    
+              );
 }
 
 
@@ -326,7 +346,7 @@ void UKF::CalculatePredictionMeanAndCovariance(const MatrixXd& x_sig_pred, Vecto
   //predicted state mean
   x.fill(0.0);
   for (int i = 0; i < 2 * n_aug_ + 1; i++) {  //iterate over sigma points
-    x = x+ weights_(i) * x_sig_pred.col(i);
+    x = x+ weights_(i)*x_sig_pred.col(i);
   }
 
   //predicted state covariance matrix
@@ -393,40 +413,46 @@ static Eigen::VectorXd ConvCartesianToPolar_CTRV(const Eigen::VectorXd& x)
 
 
 /**
- * Covert the predicted system state into the RADAR coordination of 3 states: distance rho, orientation phi, radius speed rho_d. 
+ * Covert the predicted sigma points into the RADAR coordination of 3 states: distance rho, orientation phi, radius speed rho_d. 
  * @param x_sig_pred  the predicted sigma points
- * @param z_out   the converted system state in the RADAR coordination 
- * @param S_out   the system state means
+ * @param z_out       the predicted mean state converted in the RADAR coordination 
+ * @param z_sig_out   the predicted sigma states converted in the RADAR coordination 
+ * @param S_out   the measurement covariance matrix
  */
-void UKF::ConvertPredictedStatesIntoRadarCoordination(const MatrixXd& x_sig_pred, VectorXd* z_out, MatrixXd* S_out) {
+void UKF::ConvertPredictedSigmasIntoRadarCoordination(const MatrixXd& x_sig_pred, 
+                                                      VectorXd* z_out, 
+                                                      MatrixXd* z_sig_out,
+                                                      MatrixXd* S_out) 
+{
 
+  int n_sig = x_sig_pred.cols();
 
   //create matrix for sigma points in measurement space
-  MatrixXd Zsig = MatrixXd(n_z_radar_, 2 * n_aug_ + 1);
+  MatrixXd z_sig_pts = MatrixXd(n_z_radar_, n_sig);
   
   //mean predicted measurement
   VectorXd z_pred = VectorXd(n_z_radar_);
   
   //measurement covariance matrix S
-  MatrixXd S = MatrixXd(n_z_radar_,n_z_radar_);
+  MatrixXd S = MatrixXd(n_z_radar_,n_z_radar_);  //TODO: replace the intermediate S with *S_out
 
   //transform sigma points into measurement space
-  for(int i=0; i<(2*n_aug_ + 1); i++)
+  for(int i=0; i<(n_sig); i++)
   {
       //transform sigma points into measurement space
 
-      Zsig.col(i) = ConvCartesianToPolar_CTRV(x_sig_pred.col(i)) /* + noise*/;
+      z_sig_pts.col(i) = ConvCartesianToPolar_CTRV(x_sig_pred.col(i)) /* + noise*/;
       
       //calculate mean predicted measurement
-      z_pred += weights_(i)*Zsig.col(i);
+      z_pred += weights_(i)*z_sig_pts.col(i);  //TODO: what is difference from z_pred = ConvCartesianToPolar_CTRV(x_)?????
       
 
   }
   
   //calculate measurement covariance matrix S
-  for(int i=0; i<(2*n_aug_ + 1); i++)
+  for(int i=0; i<n_sig; i++)
   {
-      VectorXd z_diff = Zsig.col(i) - z_pred;
+    VectorXd z_diff = z_sig_pts.col(i) - z_pred;
 
     //angle normalization 
     while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
@@ -436,12 +462,88 @@ void UKF::ConvertPredictedStatesIntoRadarCoordination(const MatrixXd& x_sig_pred
   }
   
 
-  S += R_;
+  S += R_radar_;
 
   //write result
   *z_out = z_pred;
+  *z_sig_out = z_sig_pts;
   *S_out = S;
 }
 
+
+
+
+
+/**
+ * Covert the predicted system state into the RADAR coordination of 3 states: distance rho, orientation phi, radius speed rho_d. 
+ * @param a_z       actual sensor measurement
+ * @param a_z_pred  system state in the measurement space/coordination
+ * @param a_z_sig   sigma points in measurement space
+ * @param a_S       measurement covariance
+ * @param x_out     the updated mean states based on the sensor measurement data
+ * @param P_out     the updated state covariance 
+ */
+void UKF::UpdateState(const VectorXd& a_z, 
+                      const VectorXd& a_z_pred, 
+                      const MatrixXd& a_z_sig, 
+                      const MatrixXd& a_S, 
+                      VectorXd* x_out, 
+                      MatrixXd* P_out
+                      ) 
+{
+
+  int n_z = a_z.size();// measurement dimension
+
+  //create temporary vector for predicted state mean
+  VectorXd x = VectorXd(n_x_);
+  x = *x_out;
+
+
+
+
+
+
+
+  //create matrix for cross correlation Tc
+  MatrixXd Tc = MatrixXd(n_x_, n_z);
+
+  //calculate cross correlation matrix
+  Tc.setZero();
+  for(int i=0; i<n_sigma_; i++)
+  {
+    VectorXd x_sig_diff(n_x_);
+    x_sig_diff << Xsig_pred_.col(i) - x;
+
+    //angle normalization
+    while (x_sig_diff(3)> M_PI) x_sig_diff(3)-=2.*M_PI;
+    while (x_sig_diff(3)<-M_PI) x_sig_diff(3)+=2.*M_PI;
+
+
+    VectorXd z_sig_diff(n_z);
+    z_sig_diff << a_z_sig.col(i) - a_z_pred;
+       
+    //angle normalization 
+    while (z_sig_diff(1)> M_PI) z_sig_diff(1)-=2.*M_PI;
+    while (z_sig_diff(1)<-M_PI) z_sig_diff(1)+=2.*M_PI;
+
+    //cross-correlation between sigma points in state space and measurement space
+    Tc += weights_(i)*x_sig_diff*z_sig_diff.transpose();
+      
+
+  }
+
+  //calculate Kalman gain K;
+  MatrixXd K(n_x_, n_z);
+  K << Tc*a_S.inverse();
+  
+  //update state mean and covariance matrix
+  x += K*(a_z-a_z_pred);
+  *P_out -= K*a_S*K.transpose();
+
+
+  //write result
+  *x_out = x;
+
+}
 
 

@@ -67,8 +67,12 @@ public:
 
   ///* number of new states. acceleration noise has two dimensions
   static constexpr int n_aug_delta_ = 2 ;
+
   ///* Augmented state dimension
   static constexpr int n_aug_ = n_x_ + n_aug_delta_;
+
+  ///* number of sigma points
+  static constexpr int n_sigma_ = 2*n_aug_ + 1;
 
   ///* number of radar measurement types, radar can measure r, phi, and r_dot
   static constexpr int n_z_radar_= 3;
@@ -82,8 +86,8 @@ public:
   ///* the current NIS for laser
   double NIS_laser_;
 
-  ///* sensor measurement noise 
-  MatrixXd R_;
+  ///* RADAR sensor measurement noise 
+  MatrixXd R_radar_;
 
 
   /**
@@ -149,14 +153,27 @@ public:
 
 
   /**
-   * Covert the predicted system state into the RADAR coordination of 3 states: distance rho, orientation phi, radius speed rho_d. 
+   * Covert the predicted sigma points into the RADAR coordination of 3 states: distance rho, orientation phi, radius speed rho_d. 
    * @param x_sig_pred  the predicted sigma points
-   * @param z_out   the converted system state in the RADAR coordination 
-   * @param S_out   the system state means
-
+   * @param z_out       the predicted mean state converted in the RADAR coordination 
+   * @param z_sig_out   the predicted sigma states converted in the RADAR coordination 
+   * @param S_out   the measurement covariance matrix
    */
-  void UKF::ConvertPredictedStatesIntoRadarCoordination(const MatrixXd& x_sig_pred, VectorXd* z_out, MatrixXd* S_out); 
+  void UKF::ConvertPredictedSigmasIntoRadarCoordination(const MatrixXd& x_sig_pred, 
+                                                        VectorXd* z_out, 
+                                                        MatrixXd* z_sig_out,
+                                                        MatrixXd* S_out) ;
 
+  /**
+   * Covert the predicted system state into the RADAR coordination of 3 states: distance rho, orientation phi, radius speed rho_d. 
+   * @param a_z       actual sensor measurement
+   * @param a_z_pred  system state in the measurement space/coordination
+   * @param a_z_sig   sigma points in measurement space
+   * @param a_S       measurement covariance
+   * @param x_out     the updated mean states based on the sensor measurement data
+   * @param P_out     the updated state covariance 
+   */
+  void UpdateState(const VectorXd& a_z, const VectorXd& a_z_pred, const MatrixXd& a_z_sig, const MatrixXd& a_S, VectorXd* x_out, MatrixXd* P_out); 
 
 };
 
