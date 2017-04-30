@@ -25,10 +25,10 @@ UKF::UKF() {
   P_ = MatrixXd(5, 5);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 30;
+  std_a_ = 0.3; // cause huge value in Xsig
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 30;
+  std_yawdd_ = 0.30;
 
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
@@ -249,12 +249,11 @@ void UKF::GenerateAugmentedSigmaPoints(MatrixXd* Xsig_out) {
  
   //create augmented mean vector
   VectorXd x_aug = VectorXd(n_aug_);
-
+  x_aug << x_, 0, 0;
   //create augmented state covariance
   MatrixXd P_aug = MatrixXd(n_aug_, n_aug_);
-
+  P_aug.setZero();
   //create augmented mean state
-  x_aug << x_, 0, 0;
 
   P_aug.block<n_x_,n_x_>(0,0) = P_;    
   P_aug.block<n_aug_delta_,n_aug_delta_>(n_x_,n_x_) = Q_;    
@@ -265,10 +264,11 @@ void UKF::GenerateAugmentedSigmaPoints(MatrixXd* Xsig_out) {
   //create augmented sigma points
   
   Xsig_out->col(0) = x_aug;
-  
+
   for(int i=0; i<n_aug_; i++)
   {
     Xsig_out->col(1+i) =   x_aug + P_delta.col(i);
+
     Xsig_out->col(1+i+n_aug_) = x_aug - P_delta.col(i);
     
   }
@@ -327,7 +327,7 @@ void UKF::PredictAugmentedSigmaPoints(const MatrixXd& Xsig_aug, double delta_t, 
       }
       
       x_sig_pred.col(i)<<px_new, py_new, v_new, yaw_new, yaw_rate_new;
-      
+
   }
 
   //write result
@@ -348,8 +348,8 @@ void UKF::CalculatePredictionMeanAndCovariance(const MatrixXd& x_sig_pred, Vecto
   double weight_0 = lambda_/(lambda_+n_aug_);
   weights_(0) = weight_0;
   for (int i=1; i<2*n_aug_+1; i++) {  //2n+1 weights_
-    double weight = 0.5/(n_aug_+lambda_);
-    weights_(i) = weight;
+    weights_(i)  = 0.5/(n_aug_+lambda_);
+
   }
 
   //predicted state mean
@@ -365,9 +365,15 @@ void UKF::CalculatePredictionMeanAndCovariance(const MatrixXd& x_sig_pred, Vecto
     // state difference
     VectorXd x_diff = x_sig_pred.col(i) - x;
     //angle normalization
-    while (x_diff(3)> M_PI) x_diff(3)-=2.*M_PI;
-    while (x_diff(3)<-M_PI) x_diff(3)+=2.*M_PI;
 
+    while (x_diff(3)> M_PI) 
+    {
+      x_diff(3)-=2.*M_PI;
+    }
+    while (x_diff(3)<-M_PI)
+    {
+      x_diff(3)+=2.*M_PI;
+    }
     P = P + weights_(i) * x_diff * x_diff.transpose() ; //Qnote: each x_diff * x_diff.transpose() is a covariance matrix P of that sigma point. average over all 
   }
 
