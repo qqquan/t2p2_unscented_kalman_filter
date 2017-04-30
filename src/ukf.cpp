@@ -194,6 +194,15 @@ void UKF::UpdateLidar(MeasurementPackage meas_package)
 
   You'll also need to calculate the lidar NIS.
   */
+  const int n_z = meas_package.raw_measurements_.size();
+  MatrixXd S = MatrixXd(n_z, n_z);
+  UpdateState(  meas_package.raw_measurements_,  
+                x_,    
+                Xsig_pred_,                      
+                S,                               
+                &x_,                             
+                &P_    
+              );  
 }
 
 /**
@@ -202,18 +211,17 @@ void UKF::UpdateLidar(MeasurementPackage meas_package)
  */
 void UKF::UpdateRadar(MeasurementPackage meas_package) {
   /**
-  TODO:
-
-  Complete this function! Use radar data to update the belief about the object's
+  Use radar data to update the belief about the object's
   position. Modify the state vector, x_, and covariance, P_.
 
-  You'll also need to calculate the radar NIS.
+   to calculate the radar NIS.
   */
-  int n_z = meas_package.raw_measurements_.size();
+  const int n_z = meas_package.raw_measurements_.size();
     //create vector for mean predicted measurement
   VectorXd z_pred = VectorXd(n_z);
   // z_pred = ConvCartesianToPolar_CTRV(x_);
   MatrixXd z_sig_pred = MatrixXd(n_z, n_sigma_);
+  
   MatrixXd S = MatrixXd(n_z, n_z);
 
   ConvertPredictedSigmasIntoRadarCoordination(    Xsig_pred_,   /*const MatrixXd& x_sig_pred, */
@@ -440,7 +448,6 @@ void UKF::ConvertPredictedSigmasIntoRadarCoordination(const MatrixXd& x_sig_pred
   for(int i=0; i<(n_sig); i++)
   {
       //transform sigma points into measurement space
-
       z_sig_pts.col(i) = ConvCartesianToPolar_CTRV(x_sig_pred.col(i)) /* + noise*/;
       
       //calculate mean predicted measurement
@@ -466,7 +473,7 @@ void UKF::ConvertPredictedSigmasIntoRadarCoordination(const MatrixXd& x_sig_pred
 
   //write result
   *z_out = z_pred;
-  *z_sig_out = z_sig_pts;
+  *z_sig_out = z_sig_pts;  //TODO: use move()
   *S_out = S;
 }
 
@@ -475,7 +482,7 @@ void UKF::ConvertPredictedSigmasIntoRadarCoordination(const MatrixXd& x_sig_pred
 
 
 /**
- * Covert the predicted system state into the RADAR coordination of 3 states: distance rho, orientation phi, radius speed rho_d. 
+ * Covert the predicted system state into the sensor measurement state. For example, RADAR space: distance rho, orientation phi, radius speed rho_d. 
  * @param a_z       actual sensor measurement
  * @param a_z_pred  system state in the measurement space/coordination
  * @param a_z_sig   sigma points in measurement space
@@ -497,11 +504,6 @@ void UKF::UpdateState(const VectorXd& a_z,
   //create temporary vector for predicted state mean
   VectorXd x = VectorXd(n_x_);
   x = *x_out;
-
-
-
-
-
 
 
   //create matrix for cross correlation Tc

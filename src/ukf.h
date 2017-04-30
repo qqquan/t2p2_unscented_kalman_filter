@@ -165,7 +165,7 @@ public:
                                                         MatrixXd* S_out) ;
 
   /**
-   * Covert the predicted system state into the RADAR coordination of 3 states: distance rho, orientation phi, radius speed rho_d. 
+   * Covert the predicted system state into the sensor measurement state. For example, RADAR space: distance rho, orientation phi, radius speed rho_d. 
    * @param a_z       actual sensor measurement
    * @param a_z_pred  system state in the measurement space/coordination
    * @param a_z_sig   sigma points in measurement space
