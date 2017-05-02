@@ -76,6 +76,8 @@ public:
 
   ///* number of radar measurement types, radar can measure r, phi, and r_dot
   static constexpr int n_z_radar_= 3;
+  ///* number of LIDAR measurement types, radar can measure r, phi, and r_dot
+  static constexpr int n_z_lidar_= 2;
 
   ///* Sigma point spreading parameter
   static constexpr double lambda_= 3 - n_x_;
@@ -89,6 +91,8 @@ public:
   ///* RADAR sensor measurement noise 
   MatrixXd R_radar_;
 
+  ///* LIDAR sensor measurement noise 
+  MatrixXd R_lidar_;
 
   /**
    * Constructor

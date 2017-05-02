@@ -24,6 +24,7 @@ void check_arguments(int argc, char* argv[]) {
   // make sure the user has provided input and output files
   if (argc == 1) {
     cerr << usage_instructions << endl;
+
   } else if (argc == 2) {
     cerr << "Please include an output file.\n" << usage_instructions << endl;
   } else if (argc == 3) {
@@ -50,14 +51,27 @@ void check_files(ifstream& in_file, string& in_name,
   }
 }
 
+#define DEBUG_UKF 1
 int main(int argc, char* argv[]) {
 
+#if !DEBUG_UKF
   check_arguments(argc, argv);
+#endif
 
+#if DEBUG_UKF
+  string in_file_name_ = "d:/hqs_d/Box Sync/Education/CarND/term2/t2p1_extended_kalman_filter/src/t2p2_unscented_kalman_filter/repo/data/obj_pose-laser-radar-synthetic-input.txt";
+#else
   string in_file_name_ = argv[1];
+#endif
   ifstream in_file_(in_file_name_.c_str(), ifstream::in);
 
+
+#if DEBUG_UKF
+  string out_file_name_ = "d:/hqs_d/Box Sync/Education/CarND/term2/t2p1_extended_kalman_filter/src/t2p2_unscented_kalman_filter/repo/data/output.txt";
+#else
   string out_file_name_ = argv[2];
+#endif
+
   ofstream out_file_(out_file_name_.c_str(), ofstream::out);
 
   check_files(in_file_, in_file_name_, out_file_, out_file_name_);

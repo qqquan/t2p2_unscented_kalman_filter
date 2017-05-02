@@ -76,6 +76,10 @@ UKF::UKF() {
               0,                    std_radphi_*std_radphi_,  0,
               0,                    0,                        std_radrd_*std_radrd_;
 
+  R_lidar_.resize(n_z_lidar_, n_z_lidar_);
+  R_lidar_ << std_laspx_*std_laspx_,    0,
+              0,                        std_laspy_*std_laspy_;
+
 
 }
 
@@ -158,6 +162,17 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     {
       /*unknown sensor, do nothing*/
     }
+
+
+    //normalize yaw
+    while (x_(3)> M_PI) 
+    {
+      x_(3)-=2.*M_PI;
+    }
+    while (x_(3)<-M_PI)
+    {
+      x_(3)+=2.*M_PI;
+    }
   }
 
 }
@@ -179,6 +194,8 @@ void UKF::Prediction(double delta_t) {
   PredictAugmentedSigmaPoints(Xsig_aug, delta_t, &Xsig_pred_);
 
   CalculatePredictionMeanAndCovariance(Xsig_pred_, &x_, &P_);
+
+
 }
 
 /**
@@ -195,15 +212,60 @@ void UKF::UpdateLidar(MeasurementPackage meas_package)
 
   You'll also need to calculate the lidar NIS.
   */
-  const int n_z = meas_package.raw_measurements_.size();
+  const int n_z = meas_package.raw_measurements_.size(); // measurement dimension
+  const VectorXd z = meas_package.raw_measurements_;
+  VectorXd z_pred = x_.head(2); //first two elements are predicted mean px and py
+  MatrixXd z_sig_pts = Xsig_pred_.topRows(2);
+  //calculate measurement covariance matrix S
   MatrixXd S = MatrixXd(n_z, n_z);
-  UpdateState(  meas_package.raw_measurements_,  
-                x_,    
-                Xsig_pred_,                      
-                S,                               
-                &x_,                             
-                &P_    
-              );  
+  S.setZero();
+
+  for(int i=0; i<n_sigma_; i++)
+  {
+    VectorXd z_diff = z_sig_pts.col(i) - z_pred ;
+
+    S += weights_(i)*z_diff*z_diff.transpose();     
+  }
+  
+
+  S += R_lidar_; 
+
+
+
+
+  //create matrix for cross correlation Tc
+  MatrixXd Tc = MatrixXd(n_x_, n_z);
+
+  //calculate cross correlation matrix
+  Tc.setZero();
+  for(int i=0; i<n_sigma_; i++)
+  {
+    VectorXd x_sig_diff(n_x_);
+    x_sig_diff << Xsig_pred_.col(i) - x_;
+
+    //angle normalization
+    while (x_sig_diff(3)> M_PI) x_sig_diff(3)-=2.*M_PI;
+    while (x_sig_diff(3)<-M_PI) x_sig_diff(3)+=2.*M_PI;
+
+
+    VectorXd z_sig_diff(n_z);
+    z_sig_diff << z_sig_pts.col(i) - z_pred;
+
+    //cross-correlation between sigma points in state space and measurement space
+    Tc += weights_(i)*x_sig_diff*z_sig_diff.transpose();
+      
+
+  }
+
+  //calculate Kalman gain K;
+  MatrixXd K(n_x_, n_z);
+  K << Tc*S.inverse();
+  
+  //update state mean and covariance matrix
+  x_ += K*(z-z_pred);
+  P_ -= K*S*K.transpose();
+
+
 }
 
 /**
@@ -238,6 +300,9 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
                 &x_,                             
                 &P_    
               );
+
+
+
 }
 
 
@@ -340,9 +405,10 @@ void UKF::CalculatePredictionMeanAndCovariance(const MatrixXd& x_sig_pred, Vecto
 
   //create vector for predicted state
   VectorXd x = VectorXd(n_x_);
-
+  x.fill(0.0);
   //create covariance matrix for prediction
   MatrixXd P = MatrixXd(n_x_, n_x_);
+  P.fill(0.0);
 
   // set weights_
   double weight_0 = lambda_/(lambda_+n_aug_);
@@ -353,14 +419,14 @@ void UKF::CalculatePredictionMeanAndCovariance(const MatrixXd& x_sig_pred, Vecto
   }
 
   //predicted state mean
-  x.fill(0.0);
+
   for (int i = 0; i < 2 * n_aug_ + 1; i++) {  //iterate over sigma points
     x = x+ weights_(i)*x_sig_pred.col(i);
   }
 
   //predicted state covariance matrix
-  P.fill(0.0);
-  for (int i = 0; i < 2 * n_aug_ + 1; i++) {  //iterate over sigma points
+ 
+  for (int i = 0; i < 2*n_aug_ + 1; i++) {  //iterate over sigma points
 
     // state difference
     VectorXd x_diff = x_sig_pred.col(i) - x;
@@ -374,10 +440,9 @@ void UKF::CalculatePredictionMeanAndCovariance(const MatrixXd& x_sig_pred, Vecto
     {
       x_diff(3)+=2.*M_PI;
     }
+
     P = P + weights_(i) * x_diff * x_diff.transpose() ; //Qnote: each x_diff * x_diff.transpose() is a covariance matrix P of that sigma point. average over all 
   }
-
-
 
 
   //write result
@@ -444,12 +509,13 @@ void UKF::ConvertPredictedSigmasIntoRadarCoordination(const MatrixXd& x_sig_pred
 
   //create matrix for sigma points in measurement space
   MatrixXd z_sig_pts = MatrixXd(n_z_radar_, n_sig);
-  
+  z_sig_pts.setZero();
   //mean predicted measurement
   VectorXd z_pred = VectorXd(n_z_radar_);
-  
+  z_pred.setZero();
   //measurement covariance matrix S
   MatrixXd S = MatrixXd(n_z_radar_,n_z_radar_);  //TODO: replace the intermediate S with *S_out
+  S.setZero();
 
   //transform sigma points into measurement space
   for(int i=0; i<(n_sig); i++)
