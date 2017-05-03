@@ -80,7 +80,7 @@ public:
   static constexpr int n_z_lidar_= 2;
 
   ///* Sigma point spreading parameter
-  static constexpr double lambda_= 3 - n_x_;
+  static constexpr double lambda_= 3 - n_aug_;
 
   ///* the current NIS for radar
   double NIS_radar_;
@@ -93,6 +93,11 @@ public:
 
   ///* LIDAR sensor measurement noise 
   MatrixXd R_lidar_;
+
+
+  ///* LIDAR sensor measurement function matrix 
+  MatrixXd H_lidar_;
+
 
   /**
    * Constructor
@@ -153,7 +158,7 @@ public:
    * @param P_out       the prediction uncertainty covariance
 
    */
-  void CalculatePredictionMeanAndCovariance(const MatrixXd& x_sig_pred, VectorXd* x_out, MatrixXd* P_out);
+  void CalculatePredictionMeanAndCovariance(void);
 
 
   /**
