@@ -141,14 +141,13 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       is_x_initialized_ = true;
     }
 
-    return; 
   }
   else
   {
     double delta_t_sec = (meas_package.timestamp_ - previous_timestamp_us_) / 1000000.0;
 
     Prediction(delta_t_sec);
-
+ 
     if (meas_package.sensor_type_ ==  MeasurementPackage::RADAR)
     {
       UpdateRadar(meas_package);
@@ -163,7 +162,6 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       /*unknown sensor, do nothing*/
     }
 
-
     //normalize yaw
     while (x_(3)> M_PI) 
     {
@@ -173,7 +171,10 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     {
       x_(3)+=2.*M_PI;
     }
+
+
   }
+
 
 }
 
@@ -263,6 +264,17 @@ void UKF::UpdateLidar(MeasurementPackage meas_package)
   
   //update state mean and covariance matrix
   x_ += K*(z-z_pred);
+  //normalize yaw
+  while (x_(3)> M_PI) 
+  {
+    x_(3)-=2.*M_PI;
+  }
+  while (x_(3)<-M_PI)
+  {
+    x_(3)+=2.*M_PI;
+  }
+
+  
   P_ -= K*S*K.transpose();
 
 
@@ -373,7 +385,7 @@ void UKF::PredictAugmentedSigmaPoints(const MatrixXd& Xsig_aug, double delta_t, 
       double niu_a_new    = 0.0;
       double niu_yaw_new  = 0.0;  
       
-      if (yaw_rate != 0)
+      if (fabs(yaw_rate )>0.001)
       {
          px_new       = px + v/yaw_rate*( sin(yaw + yaw_rate*delta_t) - sin(yaw)) + 0.5 *delta_t*delta_t*cos(yaw)*niu_a;
          py_new       = py + v/yaw_rate*(-cos(yaw + yaw_rate*delta_t) + cos(yaw)) + 0.5 *delta_t*delta_t*sin(yaw)*niu_a;
@@ -613,6 +625,16 @@ void UKF::UpdateState(const VectorXd& a_z,
   
   //update state mean and covariance matrix
   x += K*(a_z-a_z_pred);
+  //normalize yaw
+  while (x(3)> M_PI) 
+  {
+    x(3)-=2.*M_PI;
+  }
+  while (x(3)<-M_PI)
+  {
+    x(3)+=2.*M_PI;
+  }
+
   *P_out -= K*a_S*K.transpose();
 
 
