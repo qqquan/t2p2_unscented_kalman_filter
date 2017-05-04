@@ -60,9 +60,9 @@ UKF::UKF() {
   P_.resize(n_x_, n_x_); //we are only certain about px and py at beginning. a large value, e.g. 1000, means high uncertainty.
   P_ << 1, 0, 0, 0, 0,
         0, 1, 0, 0, 0,
-        0, 0, 1000, 0, 0,
-        0, 0, 0, 1000, 0,
-        0, 0, 0, 0, 1000;
+        0, 0, 1, 0, 0,
+        0, 0, 0, 1, 0,
+        0, 0, 0, 0, 1;
 
   Q_.resize(n_aug_delta_,n_aug_delta_);
   Q_ << std_a_*std_a_, 0,
@@ -147,7 +147,15 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   else
   {
     double delta_t_sec = (meas_package.timestamp_ - previous_timestamp_us_) / 1000000.0;
+    previous_timestamp_us_ = meas_package.timestamp_;
 
+    //numerical stability fix from Wolfgang_Steiner. reference: https://discussions.udacity.com/t/numerical-instability-of-the-implementation/230449/3
+    // while (delta_t_sec > 0.1)
+    // {
+    // const double dt = 0.05;
+    // Prediction(dt);
+    // delta_t_sec -= dt;
+    // }
     Prediction(delta_t_sec);
  
     if (meas_package.sensor_type_ ==  MeasurementPackage::RADAR)
