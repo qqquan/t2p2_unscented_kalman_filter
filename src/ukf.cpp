@@ -46,13 +46,7 @@ UKF::UKF() {
   // Radar measurement noise standard deviation radius change in m/s
   std_radrd_ = 0.3; // assignment value: 0.1
 
-  /**
-  TODO:
 
-  Complete the initialization. See ukf.h for other member properties.
-
-  Hint: one or more values initialized above might be wildly off...
-  */
 
   is_x_initialized_ = false; 
 
@@ -92,12 +86,7 @@ UKF::~UKF() {}
  * either radar or laser.
  */
 void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
-  /**
-  TODO:
 
-  Complete this function! Make sure you switch between lidar and radar
-  measurements.
-  */
 
   if (!is_x_initialized_)
   {
@@ -216,12 +205,10 @@ void UKF::Prediction(double delta_t) {
 void UKF::UpdateLidar(MeasurementPackage meas_package) 
 {
   /**
-  TODO:
-
-  Complete this function! Use lidar data to update the belief about the object's
+  Use lidar data to update the belief about the object's
   position. Modify the state vector, x_, and covariance, P_.
 
-  You'll also need to calculate the lidar NIS.
+  also to calculate the lidar NIS.
   */
   const VectorXd z = meas_package.raw_measurements_;
 
@@ -323,9 +310,6 @@ void UKF::GenerateAugmentedSigmaPoints(MatrixXd* Xsig_out) {
   
   }
 
-  // //write result
-  // *Xsig_out = Xsig_aug;
-
 
 }
 
@@ -363,8 +347,6 @@ void UKF::PredictAugmentedSigmaPoints(const MatrixXd& Xsig_aug, double delta_t, 
          px_new       = px + v/yaw_rate*( sin(yaw + yaw_rate*delta_t) - sin(yaw)) + 0.5 *delta_t*delta_t*cos(yaw)*niu_a;
          py_new       = py + v/yaw_rate*(-cos(yaw + yaw_rate*delta_t) + cos(yaw)) + 0.5 *delta_t*delta_t*sin(yaw)*niu_a;
          v_new        = v + delta_t*niu_a;
-         yaw_new      = yaw + yaw_rate*delta_t + 0.5*delta_t*delta_t*niu_yaw;
-         yaw_rate_new = yaw_rate + delta_t*niu_yaw;
          
       }
       else
@@ -372,10 +354,11 @@ void UKF::PredictAugmentedSigmaPoints(const MatrixXd& Xsig_aug, double delta_t, 
          px_new       = px + v*cos(yaw)*delta_t + 0.5*delta_t*delta_t*cos(yaw)*niu_a; 
          py_new       = px + v*sin(yaw)*delta_t + 0.5*delta_t*delta_t*sin(yaw)*niu_a; 
          v_new        = v + delta_t*niu_a;
-         yaw_new      = yaw + yaw_rate*delta_t + 0.5*delta_t*delta_t*niu_yaw;
-         yaw_rate_new = yaw_rate + delta_t*niu_yaw;
       }
       
+      yaw_new      = yaw + yaw_rate*delta_t + 0.5*delta_t*delta_t*niu_yaw;
+      yaw_rate_new = yaw_rate + delta_t*niu_yaw;
+
       x_sig_pred.col(i)<<px_new, py_new, v_new, yaw_new, yaw_rate_new;
 
   }
@@ -574,6 +557,7 @@ void UKF::UpdateState(const VectorXd& a_z,
     z_sig_diff << a_z_sig.col(i) - a_z_pred;
        
     //angle normalization 
+    //TODO: add sensor-specific normalization function under measurement z.  
     while (z_sig_diff(1)> M_PI) z_sig_diff(1)-=2.*M_PI;
     while (z_sig_diff(1)<-M_PI) z_sig_diff(1)+=2.*M_PI;
 
