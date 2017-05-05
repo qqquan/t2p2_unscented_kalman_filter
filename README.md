@@ -28,8 +28,8 @@ Self-Driving Car Engineer Nanodegree Program
 | data/obj_pose-laser-radar-synthetic-input.txt | 0.0644685 | 0.0941484 | 0.289432 | 0.289684 |
 
 
-Process noise standard deviation longitudinal acceleration is set '0.3' m/s^2.
-Process noise standard deviation yaw acceleration is set '0.3' rad/s^2.
+Process noise standard deviation longitudinal acceleration is set `0.3` m/s^2.
+Process noise standard deviation yaw acceleration is set `0.3` rad/s^2.
 The following chart shows that the NIS shows a good fit around the 95% line.
 
 ![NIS](data/nis_plot.png)
