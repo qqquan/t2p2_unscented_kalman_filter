@@ -28,7 +28,7 @@ UKF::UKF() {
   std_a_ = 0.3; // cause huge value in Xsig
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 0.30;
+  std_yawdd_ = 0.3;
 
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
@@ -77,6 +77,10 @@ UKF::UKF() {
   H_lidar_.resize(n_z_lidar_, n_x_);
   H_lidar_ << 1, 0, 0, 0, 0,
               0, 1, 0, 0, 0;     
+
+  NIS_radar_ = 0;
+  NIS_laser_ = 0;
+
 }
 
 UKF::~UKF() {}
@@ -237,6 +241,7 @@ void UKF::UpdateLidar(MeasurementPackage meas_package)
   }
 
 
+  NIS_laser_ = y.transpose()*S.inverse()*y;
 
 }
 
@@ -586,6 +591,8 @@ void UKF::UpdateState(const VectorXd& a_z,
 
   //write result
   *x_out = x;
+
+  NIS_radar_ = z_diff.transpose()*a_S.inverse()*z_diff;
 
 }
 

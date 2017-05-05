@@ -5,4 +5,4 @@
 build/
 
 .vs/
-output.txt
+/data/output.txt
