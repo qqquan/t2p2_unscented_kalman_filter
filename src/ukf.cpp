@@ -97,7 +97,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     /**
       * Initialize the state x_ with the first measurement.
       * Create the covariance matrix.
-      * Remember: you'll need to convert radar from polar to cartesian coordinates.
+      * need to convert radar from polar to cartesian coordinates.
     */
     // first measurement
     double init_x = 0.0;
