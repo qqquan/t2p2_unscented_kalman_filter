@@ -168,7 +168,7 @@ public:
    * @param z_sig_out   the predicted sigma states converted in the RADAR coordination 
    * @param S_out   the measurement covariance matrix
    */
-  void UKF::ConvertPredictedSigmasIntoRadarCoordination(const MatrixXd& x_sig_pred, 
+  void ConvertPredictedSigmasIntoRadarCoordination(const MatrixXd& x_sig_pred, 
                                                         VectorXd* z_out, 
                                                         MatrixXd* z_sig_out,
                                                         MatrixXd* S_out) ;
