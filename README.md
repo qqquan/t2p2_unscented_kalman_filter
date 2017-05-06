@@ -27,14 +27,15 @@ It is a Sensor Fusion project in C++ to track a bicycle position with measuremen
 
 ## Test Result
 
-| Sample Name                                   | RMSE-px   | RMSE-py   | RMSE-vx  | RMSE-vy  |
-|-----------------------------------------------|-----------|-----------|----------|----------|
-| data/obj_pose-laser-radar-synthetic-input.txt | 0.0644685 | 0.0941484 | 0.289432 | 0.289684 |
+The following table summarizes Root Mean Square Estimation(RMSE) in positions and velocity of both axises. It shows a high accuracy prediction and tracking performance.
 
+| Sample Name                                   | p_x (m)   | p_y (m)   | v_x (m/s) | v_y (m/s) |
+|-----------------------------------------------|-----------|-----------|-----------|-----------|
+| data/obj_pose-laser-radar-synthetic-input.txt | 0.0644685 | 0.0941484 | 0.289432  | 0.289684  |
 
 Process noise standard deviation longitudinal acceleration is set `0.3` m/s^2.
 Process noise standard deviation yaw acceleration is set `0.3` rad/s^2.
-The following chart shows that the NIS shows a good fit around the 95% line.
+The chart below indicates a good fit of noise model as NIS is mostly below the 95% line.
 
 ![NIS](data/nis_plot.png)
 
