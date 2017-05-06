@@ -11,6 +11,25 @@ using std::vector;
 /**
  * Initializes Unscented Kalman filter
  */
+const int UKF::n_x_ = 5;
+
+///* number of new states. acceleration noise has two dimensions
+const int UKF::n_aug_delta_ = 2 ;
+
+///* Augmented state dimension
+const int UKF::n_aug_ = UKF::n_x_ + UKF::n_aug_delta_;
+
+///* number of sigma points
+const int UKF::n_sigma_ = 2* UKF::n_aug_ + 1;
+
+///* number of radar measurement types, radar can measure r, phi, and r_dot
+const int UKF::n_z_radar_= 3;
+///* number of LIDAR measurement types, radar can measure r, phi, and r_dot
+const int UKF::n_z_lidar_= 2;
+
+///* Sigma point spreading parameter
+const double UKF::lambda_= 3 - UKF::n_aug_;
+  
 UKF::UKF() {
   // if this is false, laser measurements will be ignored (except during init)
   use_laser_ = true;

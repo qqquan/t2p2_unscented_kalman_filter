@@ -63,24 +63,24 @@ public:
   VectorXd weights_;
 
   ///* State dimension. CVTR model has five states: px, py, v, yaw, yawd
-  static constexpr int n_x_ = 5;
+  static const int n_x_;
 
   ///* number of new states. acceleration noise has two dimensions
-  static constexpr int n_aug_delta_ = 2 ;
+  static const int n_aug_delta_;
 
   ///* Augmented state dimension
-  static constexpr int n_aug_ = n_x_ + n_aug_delta_;
+  static const int n_aug_;
 
   ///* number of sigma points
-  static constexpr int n_sigma_ = 2*n_aug_ + 1;
+  static const int n_sigma_;
 
   ///* number of radar measurement types, radar can measure r, phi, and r_dot
-  static constexpr int n_z_radar_= 3;
+  static const int n_z_radar_;
   ///* number of LIDAR measurement types, radar can measure r, phi, and r_dot
-  static constexpr int n_z_lidar_= 2;
+  static const int n_z_lidar_;
 
   ///* Sigma point spreading parameter
-  static constexpr double lambda_= 3 - n_aug_;
+  static const double lambda_;
 
   ///* the current NIS for radar
   double NIS_radar_;
