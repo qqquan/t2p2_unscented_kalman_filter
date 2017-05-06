@@ -1,10 +1,7 @@
 # Unscented Kalman Filter Project 
-Self-Driving Car Engineer Nanodegree Program
+It is a Sensor Fusion project in C++ to track a bicycle position with measurement data from both RADAR and LIDAR sensors. The object is predicted with a Constant Turn Rate and Velocity magnitude model. An efficient Unscented Kalman Filter is implemented to address the non-linearity in the motion model.
 
 ---
-
-## Description
-It is a Sensor Fusion project in C++ to track a bicycle position with measurement data from both RADAR and LIDAR sensors. The object is predicted with a Constant Turn Rate and Velocity magnitude model. An efficient Unscented Kalman Filter is implemented to address the non-linearity in the motion model.
 
 
 ## Dependencies
@@ -27,7 +24,7 @@ It is a Sensor Fusion project in C++ to track a bicycle position with measuremen
 
 ## Test Result
 
-The following table summarizes Root Mean Square Estimation(RMSE) in positions and velocity of both axises. It shows a high accuracy prediction and tracking performance.
+The following table summarizes Root Mean Square Estimation(RMSE) in position and velocity of both axises. It shows a high accuracy prediction and tracking performance.
 
 | Sample Name                                   | p_x (m)   | p_y (m)   | v_x (m/s) | v_y (m/s) |
 |-----------------------------------------------|-----------|-----------|-----------|-----------|
