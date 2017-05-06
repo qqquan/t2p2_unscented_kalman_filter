@@ -4,7 +4,7 @@ Self-Driving Car Engineer Nanodegree Program
 ---
 
 ## Description
-It is a Sensor Fusion project that synthesizes position information from both RADAR and LIDAR sensors. The object is predicted with a Constant Turn Rate and Velocity magnitude model. An efficient Unscented Kalman Filter is implemented in C++ to address the non-linearity in the motion model.
+It is a Sensor Fusion project in C++ to track a bicycle position with measurement data from both RADAR and LIDAR sensors. The object is predicted with a Constant Turn Rate and Velocity magnitude model. An efficient Unscented Kalman Filter is implemented to address the non-linearity in the motion model.
 
 
 ## Dependencies
