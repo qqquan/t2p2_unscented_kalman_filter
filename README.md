@@ -24,7 +24,7 @@ It is a Sensor Fusion project in C++ to track a bicycle position with measuremen
 
 ## Test Result
 
-The following table summarizes Root Mean Square Estimation(RMSE) in position and velocity of both axises. It shows a high accuracy prediction and tracking performance.
+The following table summarizes Root Mean Square Estimation(RMSE) in position and velocity of both axises between the tracked states and the ground truth. It shows a high accuracy prediction and tracking performance.z
 
 | Sample Name                                   | p_x (m)   | p_y (m)   | v_x (m/s) | v_y (m/s) |
 |-----------------------------------------------|-----------|-----------|-----------|-----------|
